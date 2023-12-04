@@ -3,6 +3,7 @@
 
 // Include C++ STD
 #include <iostream>
+#include <filesystem>
 
 // Making this object global so show_second_window() can access it.
 webui::window my_second_window;
@@ -63,10 +64,39 @@ void events_wrp(webui::window::event* e) { myClassObj.events(e); }
 void exit_app_wrp(webui::window::event* e) { myClassObj.exit_app(e); }
 // ---------------------------------------------------------------------------------------------
 
+#ifdef _WIN32
+std::filesystem::path get_app_filename() {
+  char path[MAX_PATH];
+  BOOL success = GetModuleFileName(NULL, path, sizeof(path));
+  return  std::filesystem::path(path);
+}
+#endif
+
+#ifdef __linux__
+std::filesystem::path get_app_filename() {
+  char path[PATH_MAX];
+  ssize_t count = readlink("/proc/self/exe", path, sizeof(path));
+  return new std::filesystem::path(path);
+}
+#endif
+
+#ifdef __APPLE__
+std::filesystem::path get_app_filename() {
+  	char path[PATH_MAX];
+  	uint32_t size = sizeof(path);
+	int count = _NSGetExecutablePath(path, &size);
+  	return new std::filesystem::path(path);
+}
+#endif
+
 int main() {
 
 	// Print logs (debug build only)
 	std::cout << "Starting..." << std::endl;
+
+	// Set the path to the folder containing the application
+	auto path = get_app_filename();
+	std::filesystem::current_path(path.remove_filename());
 
 	// Create a new window
 	webui::window my_window;
